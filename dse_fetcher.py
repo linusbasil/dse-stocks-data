@@ -4,7 +4,7 @@ from datetime import datetime
 import os
 import urllib.request
 
-# ========== STOCK PRICES (LIVE FROM DSE JSON PIPELINE) ==========
+# ========== STOCK PRICES ==========
 prices = {
     "CRDB": 2940, "NMB": 13800, "VODA": 800, "TBL": 10200,
     "TPCC": 7400, "DCB": 750, "DSE": 1050, "KCB": 510
