@@ -27,6 +27,7 @@ jobs:
       - name: Run python dse_fetcher.py
         env:
           MANSA_API_KEY: ${{ secrets.MANSA_API_KEY }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: python dse_fetcher.py
 
       - name: Commit and push prices
