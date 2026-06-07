@@ -2,8 +2,11 @@ name: Daily DSE Prices
 
 on:
   schedule:
-    - cron: '0 14 * * 1-5'  # Runs Mon-Fri at 2PM UTC (5PM Dar es Salaam)
-  workflow_dispatch:  # Allows manual trigger
+    - cron: '0 14 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   update:
