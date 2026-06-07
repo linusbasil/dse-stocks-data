@@ -1,7 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import json
-import os
+import re
 
 def fetch_dse_prices():
     url = "https://www.mansamarkets.com/tanzania"
@@ -14,22 +14,21 @@ def fetch_dse_prices():
 
     try:
         response = requests.get(url, headers=headers, timeout=20)
-        print(f"Status: {response.status_code}")
         soup = BeautifulSoup(response.text, "html.parser")
 
-        # Print page snippet for debugging
-        print(f"Page preview: {response.text[500:1000]}")
-
-        # Try all tables
         tables = soup.find_all("table")
-        print(f"Tables found: {len(tables)}")
-
         for table in tables:
             for row in table.find_all("tr")[1:]:
                 cols = row.find_all("td")
                 if len(cols) >= 2:
-                    symbol = cols[0].text.strip()
-                    price = cols[1].text.strip()
+                    # Extract ticker (last uppercase word)
+                    raw = cols[0].text.strip()
+                    match = re.search(r'([A-Z]{2,6})$', raw)
+                    symbol = match.group(1) if match else raw
+
+                    # Clean price
+                    price = cols[1].text.strip().replace(",", "").replace("TSh", "").strip()
+
                     if symbol and price:
                         prices[symbol] = price
                         print(f"✅ {symbol}: {price}")
