@@ -1,7 +1,9 @@
 import requests
+import urllib3
 from bs4 import BeautifulSoup
 import json
-import os
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def fetch_dse_prices():
     url = "https://www.dse.co.tz/market-statistics"
@@ -9,7 +11,7 @@ def fetch_dse_prices():
     prices = {}
 
     try:
-        response = requests.get(url, headers=headers, timeout=15)
+        response = requests.get(url, headers=headers, timeout=15, verify=False)
         soup = BeautifulSoup(response.text, "html.parser")
         
         table = soup.find("table")
