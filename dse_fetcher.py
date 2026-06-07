@@ -1,10 +1,8 @@
 import json
 import urllib.request
-import time
 from datetime import datetime
 
-# Correct Yahoo Finance symbols for DSE stocks (using .TZ suffix where available)
-# If a symbol is not found on Yahoo, it will be skipped – you can add/remove as needed.
+# All active DSE stocks with correct Yahoo Finance symbols (.TZ suffix)
 SYMBOLS = {
     "CRDB": "CRDB.TZ",
     "NMB": "NMB.TZ",
@@ -31,50 +29,47 @@ SYMBOLS = {
     "TCCL": "TCCL.TZ"
 }
 
-def fetch_yahoo_price(yahoo_symbol, retries=2):
-    """Fetch current price from Yahoo Finance with retry and delay."""
-    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbol}"
-    for attempt in range(retries):
-        try:
-            with urllib.request.urlopen(url, timeout=10) as resp:
-                data = json.loads(resp.read().decode())
-                result = data.get('chart', {}).get('result')
-                if result and len(result) > 0:
-                    meta = result[0].get('meta')
-                    if meta:
-                        price = meta.get('regularMarketPrice')
-                        if price is not None:
-                            return round(price, 2)
-        except Exception as e:
-            if attempt == retries - 1:
-                print(f"⚠️ Failed {yahoo_symbol}: {e}")
-            else:
-                time.sleep(2)  # wait before retry
-    return None
+def fetch_all_prices():
+    """Fetch all symbols in one batch request to avoid rate limiting."""
+    # Build comma‑separated list of Yahoo symbols
+    yahoo_symbols = ','.join(SYMBOLS.values())
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbols}"
+    
+    try:
+        with urllib.request.urlopen(url, timeout=15) as resp:
+            data = json.loads(resp.read().decode())
+            result = data.get('chart', {}).get('result', [])
+            prices = {}
+            for item in result:
+                meta = item.get('meta', {})
+                symbol = meta.get('symbol')      # e.g., "CRDB.TZ"
+                price = meta.get('regularMarketPrice')
+                if symbol and price is not None:
+                    # Find friendly key (without .TZ)
+                    for friendly, yahoo in SYMBOLS.items():
+                        if yahoo == symbol:
+                            prices[friendly] = round(price, 2)
+                            break
+            return prices
+    except Exception as e:
+        print(f"❌ Batch fetch failed: {e}")
+        return None
 
 def main():
-    prices = {}
-    for friendly, yahoo in SYMBOLS.items():
-        print(f"Fetching {friendly} ({yahoo})...")
-        price = fetch_yahoo_price(yahoo)
-        if price is not None:
-            prices[friendly] = price
-        else:
-            print(f"⚠️ Could not fetch {friendly} – skipping")
-        time.sleep(1.5)  # delay between different stocks to avoid rate limiting
-
+    prices = fetch_all_prices()
+    
     if not prices:
         print("❌ No prices fetched – keeping existing dse_prices.json")
         return
-
+    
     data = {
         "date": datetime.now().date().isoformat(),
         "prices": prices
     }
-
+    
     with open("dse_prices.json", "w") as f:
         json.dump(data, f, indent=2)
-
+    
     print(f"✅ dse_prices.json updated with {len(prices)} live prices")
     print(json.dumps(data, indent=2))
 
