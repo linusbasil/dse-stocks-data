@@ -2,18 +2,34 @@ name: Daily DSE Prices
 
 on:
   schedule:
-    - cron: '30 14 * * 1-5'
-  workflow_dispatch:
+    - cron: '0 14 * * 1-5'  # Runs Mon-Fri at 2PM UTC (5PM Dar es Salaam)
+  workflow_dispatch:  # Allows manual trigger
 
 jobs:
   update:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Run actions/checkout@v4
+        uses: actions/checkout@v4
+
+      - name: Run actions/setup-python@v5
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
       - name: Install yfinance
-        run: pip install yfinance
+        run: pip install requests beautifulsoup4
+
       - name: Run python dse_fetcher.py
+        env:
+          MANSA_API_KEY: ${{ secrets.MANSA_API_KEY }}
         run: python dse_fetcher.py
+
+      - name: Commit and push prices
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add dse_prices.json
+          git diff --cached --quiet || git commit -m "Update DSE prices"
+          git push
