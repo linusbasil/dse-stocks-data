@@ -14,7 +14,7 @@ def fetch_dse_prices():
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.5",
     }
-    prices = {}
+    stocks = []
     try:
         response = requests.get(url, headers=headers, timeout=20)
         soup = BeautifulSoup(response.text, "html.parser")
@@ -30,47 +30,22 @@ def fetch_dse_prices():
                         symbol = ticker + " PLC"
                     else:
                         continue
-                    price_raw = cols[2].text.strip()
-                    price = re.sub(r'[^\d.]', '', price_raw)
+                    price = re.sub(r'[^\d.]', '', cols[2].text.strip())
+                    change = re.sub(r'[^\d.\-]', '', cols[3].text.strip()) if len(cols) > 3 else "0"
+                    volume = re.sub(r'[^\d]', '', cols[4].text.strip()) if len(cols) > 4 else "0"
                     if symbol and price:
-                        prices[symbol] = price
+                        stocks.append({
+                            "symbol": symbol,
+                            "price": float(price) if price else 0,
+                            "change_percent": float(change) if change else 0,
+                            "volume": int(volume) if volume else 0,
+                        })
                         print("Fetched " + symbol + ": " + price)
     except Exception as e:
         print("Fetch error: " + str(e))
-    return prices
+    return stocks
 
-def push_to_supabase(prices):
+def push_to_supabase(stocks):
     headers = {
         "apikey": SUPABASE_KEY,
-        "Authorization": "Bearer " + SUPABASE_KEY,
-        "Content-Type": "application/json",
-        "Prefer": "resolution=merge-duplicates"
-    }
-    url = SUPABASE_URL + "/rest/v1/dse_stocks"
-    success = 0
-    for symbol, price in prices.items():
-        row = {
-            "symbol": symbol,
-            "current_price": float(price),
-        }
-        try:
-            res = requests.post(url, headers=headers, json=row, timeout=10)
-            if res.status_code in [200, 201]:
-                success += 1
-                print("Saved: " + symbol)
-            else:
-                print("Failed " + symbol + ": " + res.text[:150])
-        except Exception as e:
-            print("Error: " + str(e))
-    return success
-
-prices = fetch_dse_prices()
-
-if prices:
-    with open("dse_prices.json", "w") as f:
-        json.dump(prices, f, indent=2)
-    print("Saved " + str(len(prices)) + " prices to JSON")
-    pushed = push_to_supabase(prices)
-    print("Pushed " + str(pushed) + " prices to Supabase")
-else:
-    print("No prices found")
+        "
