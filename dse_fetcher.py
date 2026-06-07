@@ -1,44 +1,79 @@
 import json
-import csv
-from datetime import datetime
-import os
 import urllib.request
+from datetime import datetime
 
-# ========== STOCK PRICES ==========
-prices = {
-    "CRDB": 2940, "NMB": 13800, "VODA": 800, "TBL": 10200,
-    "TPCC": 7400, "DCB": 750, "DSE": 1050, "KCB": 510
+# All active DSE stocks (friendly name -> Yahoo Finance symbol with .TZ suffix)
+SYMBOLS = {
+    "CRDB": "CRDB.TZ",
+    "NMB":  "NMB.TZ",
+    "VODA": "VODA.TZ",
+    "TBL":  "TBL.TZ",
+    "TPCC": "TPCC.TZ",
+    "DCB":  "DCB.TZ",
+    "DSE":  "DSE.TZ",
+    "KCB":  "KCB.TZ",
+    "TOL":  "TOL.TZ",
+    "TCC":  "TCC.TZ",
+    "SWISS":"SWISS.TZ",
+    "NICO": "NICO.TZ",
+    "MKCB": "MKCB.TZ",
+    "EABL": "EABL.TZ",
+    "JHL":  "JHL.TZ",
+    "MCC":  "MCC.TZ",
+    "NMG":  "NMG.TZ",
+    "NICOL":"NICOL.TZ",
+    "PCC":  "PCC.TZ",
+    "TCCIA":"TCCIA.TZ",
+    "TICL": "TICL.TZ",
+    "TPC":  "TPC.TZ",
+    "TCCL": "TCCL.TZ",
+    "SWIS": "SWIS.TZ",        # alternative spelling
+    "VERTEX": "VERTEX.TZ",
+    "USL": "USL.TZ",
+    "TTP": "TTP.TZ",
+    "NMG": "NMG.TZ",
+    "MKCB": "MKCB.TZ",
+    "EABL": "EABL.TZ"
 }
 
-data = {
-    "date": datetime.now().date().isoformat(),
-    "prices": prices
-}
-
-# Save JSON file
-with open("dse_prices.json", "w") as f:
-    json.dump(data, f, indent=2)
-
-print("✅ dse_prices.json created successfully!")
-print(json.dumps(data, indent=2))
-
-# ========== SEND TO BINGWA WEBHOOK ==========
-WEBHOOK_URL = "https://project--be89c011-fe5d-4ecd-b65b-e74592e8631b.lovable.app/api/public/update-price-history"
-ADMIN_KEY = os.environ.get("BINGWA_ADMIN_KEY")
-
-if ADMIN_KEY:
+def fetch_yahoo_price(yahoo_symbol):
+    """Fetch current price from Yahoo Finance."""
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbol}"
     try:
-        with open("dse_prices.json", "r") as f:
-            payload = json.load(f)
-        req = urllib.request.Request(
-            WEBHOOK_URL,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json", "x-api-key": ADMIN_KEY},
-            method="POST"
-        )
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            print("✅ Price history webhook:", resp.status, resp.read().decode())
+        with urllib.request.urlopen(url, timeout=10) as resp:
+            data = json.loads(resp.read().decode())
+            result = data.get('chart', {}).get('result')
+            if result and len(result) > 0:
+                meta = result[0].get('meta')
+                if meta:
+                    return meta.get('regularMarketPrice')
     except Exception as e:
-        print("⚠️ Webhook failed:", e)
-else:
-    print("⏭️ Skipping: BINGWA_ADMIN_KEY not set")
+        print(f"⚠️ Error fetching {yahoo_symbol}: {e}")
+    return None
+
+def main():
+    prices = {}
+    for friendly, yahoo in SYMBOLS.items():
+        price = fetch_yahoo_price(yahoo)
+        if price is not None:
+            prices[friendly] = round(price, 2)
+        else:
+            print(f"⚠️ Could not fetch {friendly} ({yahoo}), skipping")
+    
+    if not prices:
+        print("❌ No prices fetched – keeping existing dse_prices.json")
+        return
+    
+    data = {
+        "date": datetime.now().date().isoformat(),
+        "prices": prices
+    }
+    
+    with open("dse_prices.json", "w") as f:
+        json.dump(data, f, indent=2)
+    
+    print(f"✅ dse_prices.json updated with {len(prices)} live prices")
+    print(json.dumps(data, indent=2))
+
+if __name__ == "__main__":
+    main()
