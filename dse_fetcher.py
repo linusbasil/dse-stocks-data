@@ -1,10 +1,8 @@
 import json
-import urllib.request
-import time
+import yfinance as yf
 from datetime import datetime
-import os
 
-# DSE symbols as Alpha Vantage expects (they use .TZ suffix)
+# All DSE symbols with correct Yahoo Finance suffix .TZ
 SYMBOLS = {
     "CRDB": "CRDB.TZ",
     "NMB": "NMB.TZ",
@@ -31,39 +29,21 @@ SYMBOLS = {
     "TCCL": "TCCL.TZ"
 }
 
-API_KEY = os.environ.get("ALPHA_VANTAGE_KEY")
-
-def fetch_alpha_vantage(yahoo_symbol):
-    """Fetch price from Alpha Vantage using the symbol (Yahoo format)."""
-    if not API_KEY:
-        return None
-    # Alpha Vantage uses same ticker format for global stocks
-    url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={yahoo_symbol}&apikey={API_KEY}"
-    try:
-        with urllib.request.urlopen(url, timeout=10) as resp:
-            data = json.loads(resp.read().decode())
-            quote = data.get("Global Quote", {})
-            price = quote.get("05. price")
-            if price:
-                return round(float(price), 2)
-    except Exception as e:
-        print(f"⚠️ Error fetching {yahoo_symbol}: {e}")
-    return None
-
 def main():
-    if not API_KEY:
-        print("❌ ALPHA_VANTAGE_KEY not set in secrets.")
-        return
-
     prices = {}
-    for friendly, yahoo in SYMBOLS.items():
-        print(f"Fetching {friendly}...")
-        price = fetch_alpha_vantage(yahoo)
-        if price is not None:
-            prices[friendly] = price
-        else:
-            print(f"⚠️ Could not fetch {friendly}")
-        time.sleep(12)  # Alpha Vantage free tier: 5 calls per minute → 12 sec between calls
+    for friendly, yahoo_symbol in SYMBOLS.items():
+        ticker = yf.Ticker(yahoo_symbol)
+        try:
+            # Get current price (regular market price or previous close)
+            info = ticker.info
+            price = info.get('regularMarketPrice') or info.get('previousClose')
+            if price:
+                prices[friendly] = round(price, 2)
+                print(f"✅ {friendly} ({yahoo_symbol}): {price}")
+            else:
+                print(f"⚠️ {friendly}: No price available")
+        except Exception as e:
+            print(f"❌ {friendly}: {e}")
 
     if not prices:
         print("❌ No prices fetched – keeping existing dse_prices.json")
@@ -77,8 +57,7 @@ def main():
     with open("dse_prices.json", "w") as f:
         json.dump(data, f, indent=2)
 
-    print(f"✅ dse_prices.json updated with {len(prices)} live prices")
-    print(json.dumps(data, indent=2))
+    print(f"\n✅ Updated dse_prices.json with {len(prices)} live prices")
 
 if __name__ == "__main__":
     main()
