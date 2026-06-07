@@ -21,13 +21,22 @@ def fetch_dse_prices():
             for row in table.find_all("tr")[1:]:
                 cols = row.find_all("td")
                 if len(cols) >= 2:
-                    # Extract ticker (last uppercase word)
-                    raw = cols[0].text.strip()
-                    match = re.search(r'([A-Z]{2,6})$', raw)
-                    symbol = match.group(1) if match else raw
+
+                    # Get ticker from href
+                    link = cols[0].find("a")
+                    if link:
+                        href = link.get("href", "")
+                        ticker = href.split("/")[-1].upper()
+                        symbol = f"{ticker} PLC"
+                    else:
+                        raw = cols[0].text.strip()
+                        words = raw.split()
+                        ticker = words[-1].upper() if words else raw
+                        symbol = f"{ticker} PLC"
 
                     # Clean price
-                    price = cols[1].text.strip().replace(",", "").replace("TSh", "").strip()
+                    price = cols[1].text.strip()
+                    price = re.sub(r'[^\d.]', '', price)
 
                     if symbol and price:
                         prices[symbol] = price
@@ -41,8 +50,4 @@ def fetch_dse_prices():
 prices = fetch_dse_prices()
 
 if prices:
-    with open("dse_prices.json", "w") as f:
-        json.dump(prices, f, indent=2)
-    print(f"\n✅ Saved {len(prices)} prices")
-else:
-    print("❌ No prices found")
+    with o
