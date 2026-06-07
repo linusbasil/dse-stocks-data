@@ -15,33 +15,23 @@ def fetch_dse_prices():
         response = requests.get(url, headers=headers, timeout=20)
         soup = BeautifulSoup(response.text, "html.parser")
         tables = soup.find_all("table")
-        for table in tables:
-            for row in table.find_all("tr")[1:]:
+        print("Tables found: " + str(len(tables)))
+
+        for i, table in enumerate(tables):
+            rows = table.find_all("tr")
+            print("Table " + str(i) + " has " + str(len(rows)) + " rows")
+            for row in rows[:3]:
                 cols = row.find_all("td")
-                if len(cols) >= 2:
-                    link = cols[0].find("a")
+                print("Row cols: " + str(len(cols)))
+                for j, col in enumerate(cols):
+                    print("  Col " + str(j) + ": " + col.text.strip()[:50])
+                    link = col.find("a")
                     if link:
-                        href = link.get("href", "")
-                        ticker = href.split("/")[-1].upper()
-                        symbol = ticker + " PLC"
-                    else:
-                        raw = cols[0].text.strip()
-                        words = raw.split()
-                        ticker = words[-1].upper() if words else raw
-                        symbol = ticker + " PLC"
-                    price = cols[1].text.strip()
-                    price = re.sub(r'[^\d.]', '', price)
-                    if symbol and price:
-                        prices[symbol] = price
-                        print("OK " + symbol + ": " + price)
+                        print("  Link href: " + str(link.get("href","")))
+
     except Exception as e:
         print("Error: " + str(e))
     return prices
 
 prices = fetch_dse_prices()
-if prices:
-    with open("dse_prices.json", "w") as f:
-        json.dump(prices, f, indent=2)
-    print("Saved " + str(len(prices)) + " prices")
-else:
-    print("No prices found")
+print("Done")
