@@ -46,22 +46,22 @@ def push_to_supabase(prices):
         "Content-Type": "application/json",
         "Prefer": "resolution=merge-duplicates"
     }
-    url = SUPABASE_URL + "/rest/v1/dse_prices"
+    url = SUPABASE_URL + "/rest/v1/dse_stocks"
     success = 0
     for symbol, price in prices.items():
         row = {
             "symbol": symbol,
-            "price": float(price),
+            "current_price": float(price),
         }
         try:
             res = requests.post(url, headers=headers, json=row, timeout=10)
             if res.status_code in [200, 201]:
                 success += 1
-                print("Saved to Supabase: " + symbol)
+                print("Saved: " + symbol)
             else:
-                print("Failed " + symbol + ": " + str(res.status_code) + " " + res.text[:100])
+                print("Failed " + symbol + ": " + res.text[:150])
         except Exception as e:
-            print("Supabase error: " + str(e))
+            print("Error: " + str(e))
     return success
 
 prices = fetch_dse_prices()
