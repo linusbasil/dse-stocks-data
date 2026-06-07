@@ -1,33 +1,26 @@
 import requests
-import urllib3
-from bs4 import BeautifulSoup
 import json
+import os
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+API_KEY = os.environ.get("MANSA_API_KEY", "")
 
 def fetch_dse_prices():
-    url = "https://www.african-markets.com/en/stock-markets/dse/listed-companies"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-    }
+    url = "https://www.mansaapi.com/api/v1/stocks"
+    headers = {"Authorization": f"Bearer {API_KEY}"}
+    params = {"exchange": "DSE"}
     prices = {}
 
     try:
-        response = requests.get(url, headers=headers, timeout=20, verify=False)
-        soup = BeautifulSoup(response.text, "html.parser")
+        response = requests.get(url, headers=headers, params=params, timeout=15)
+        print(f"Status code: {response.status_code}")
+        data = response.json()
 
-        # Find all table rows
-        rows = soup.find_all("tr")
-        for row in rows:
-            cols = row.find_all("td")
-            if len(cols) >= 3:
-                symbol = cols[0].text.strip()
-                price = cols[2].text.strip()
-                if symbol and price:
-                    # Clean price (remove commas, spaces)
-                    price_clean = price.replace(",", "").replace(" ", "")
-                    prices[symbol] = price_clean
-                    print(f"✅ {symbol}: {price_clean}")
+        for stock in data.get("stocks", []):
+            symbol = stock.get("ticker", "")
+            price = stock.get("price", "")
+            if symbol and price:
+                prices[symbol] = str(price)
+                print(f"✅ {symbol}: {price}")
 
     except Exception as e:
         print(f"❌ Error: {e}")
@@ -39,6 +32,6 @@ prices = fetch_dse_prices()
 if prices:
     with open("dse_prices.json", "w") as f:
         json.dump(prices, f, indent=2)
-    print(f"\n✅ Saved {len(prices)} prices to dse_prices.json")
+    print(f"\n✅ Saved {len(prices)} prices")
 else:
     print("❌ No prices found")
