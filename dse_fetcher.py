@@ -6,24 +6,39 @@ API_KEY = os.environ.get("MANSA_API_KEY", "")
 
 def fetch_dse_prices():
     url = "https://www.mansaapi.com/api/v1/stocks"
-    headers = {"Authorization": f"Bearer {API_KEY}"}
-    params = {"exchange": "DSE"}
     prices = {}
 
-    try:
-        response = requests.get(url, headers=headers, params=params, timeout=15)
-        print(f"Status code: {response.status_code}")
-        data = response.json()
+    # Try different auth methods
+    headers_options = [
+        {"X-API-Key": API_KEY},
+        {"Authorization": f"Bearer {API_KEY}"},
+        {"Authorization": f"Token {API_KEY}"},
+        {"api-key": API_KEY},
+    ]
 
-        for stock in data.get("stocks", []):
-            symbol = stock.get("ticker", "")
-            price = stock.get("price", "")
-            if symbol and price:
-                prices[symbol] = str(price)
-                print(f"✅ {symbol}: {price}")
+    for headers in headers_options:
+        try:
+            response = requests.get(
+                url,
+                headers=headers,
+                params={"exchange": "DSE"},
+                timeout=15
+            )
+            print(f"Tried {list(headers.keys())[0]}: Status {response.status_code}")
+            print(f"Response: {response.text[:200]}")
 
-    except Exception as e:
-        print(f"❌ Error: {e}")
+            if response.status_code == 200:
+                data = response.json()
+                for stock in data.get("stocks", []):
+                    symbol = stock.get("ticker", "")
+                    price = stock.get("price", "")
+                    if symbol and price:
+                        prices[symbol] = str(price)
+                        print(f"✅ {symbol}: {price}")
+                break
+
+        except Exception as e:
+            print(f"❌ Error: {e}")
 
     return prices
 
