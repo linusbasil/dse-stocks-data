@@ -1,44 +1,41 @@
 import requests
+from bs4 import BeautifulSoup
 import json
 import os
 
-API_KEY = os.environ.get("MANSA_API_KEY", "")
-
 def fetch_dse_prices():
-    url = "https://www.mansaapi.com/api/v1/stocks"
+    url = "https://www.mansamarkets.com/tanzania"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+    }
     prices = {}
 
-    # Try different auth methods
-    headers_options = [
-        {"X-API-Key": API_KEY},
-        {"Authorization": f"Bearer {API_KEY}"},
-        {"Authorization": f"Token {API_KEY}"},
-        {"api-key": API_KEY},
-    ]
+    try:
+        response = requests.get(url, headers=headers, timeout=20)
+        print(f"Status: {response.status_code}")
+        soup = BeautifulSoup(response.text, "html.parser")
 
-    for headers in headers_options:
-        try:
-            response = requests.get(
-                url,
-                headers=headers,
-                params={"exchange": "DSE"},
-                timeout=15
-            )
-            print(f"Tried {list(headers.keys())[0]}: Status {response.status_code}")
-            print(f"Response: {response.text[:200]}")
+        # Print page snippet for debugging
+        print(f"Page preview: {response.text[500:1000]}")
 
-            if response.status_code == 200:
-                data = response.json()
-                for stock in data.get("stocks", []):
-                    symbol = stock.get("ticker", "")
-                    price = stock.get("price", "")
+        # Try all tables
+        tables = soup.find_all("table")
+        print(f"Tables found: {len(tables)}")
+
+        for table in tables:
+            for row in table.find_all("tr")[1:]:
+                cols = row.find_all("td")
+                if len(cols) >= 2:
+                    symbol = cols[0].text.strip()
+                    price = cols[1].text.strip()
                     if symbol and price:
-                        prices[symbol] = str(price)
+                        prices[symbol] = price
                         print(f"✅ {symbol}: {price}")
-                break
 
-        except Exception as e:
-            print(f"❌ Error: {e}")
+    except Exception as e:
+        print(f"❌ Error: {e}")
 
     return prices
 
