@@ -1,52 +1,62 @@
-import requests, json, re, os
-from bs4 import BeautifulSoup
+import json
+import os
+from datetime import datetime, timezone
+import yfinance as yf
 
-URL = 'https://ghluqfrinjosvwxnggup.supabase.co'
-KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
+# List of DSE tickers (add more as needed)
+# Note: yfinance supports some DSE tickers with .TZ suffix
+TICKERS = [
+    "CRDB.TZ",   # CRDB Bank
+    "DCB.TZ",    # DCB Bank
+    "NICO.TZ",   # NICOL
+    "TCC.TZ",    # Tanzania Cigarette Company
+    "SWALA.TZ",  # Swala
+    "TPCC.TZ",   # TPCC
+    "VODA.TZ",   # Vodacom Tanzania
+]
 
-def fetch():
+def fetch_stock_data():
     stocks = []
-    try:
-        r = requests.get('https://www.mansamarkets.com/tanzania', headers={'User-Agent': 'Mozilla/5.0'}, timeout=20)
-        soup = BeautifulSoup(r.text, 'html.parser')
-        for table in soup.find_all('table'):
-            for row in table.find_all('tr'):
-                cols = row.find_all('td')
-                if len(cols) < 3:
-                    continue
-                a = cols[1].find('a')
-                if not a:
-                    continue
-                sym = a.get('href','').split('/')[-1].upper() + ' PLC'
-                price = re.sub(r'[^\d.]', '', cols[2].text)
-                chg = re.sub(r'[^\d.\-]', '', cols[3].text) if len(cols) > 3 else '0'
-                vol = re.sub(r'[^\d]', '', cols[4].text) if len(cols) > 4 else '0'
-                if price:
-                    stocks.append({'symbol':sym,'price':float(price),'change_percent':float(chg or 0),'volume':int(vol or 0)})
-                    print('OK '+sym+' '+price)
-    except Exception as e:
-        print('ERR '+str(e))
+    for ticker in TICKERS:
+        try:
+            stock = yf.Ticker(ticker)
+            info = stock.info
+            price = info.get('regularMarketPrice', info.get('currentPrice', 0))
+            prev_close = info.get('regularMarketPreviousClose', 0)
+            change_percent = ((price - prev_close) / prev_close * 100) if prev_close else 0.0
+            
+            stocks.append({
+                "ticker": ticker.replace(".TZ", ""),
+                "name": info.get('longName', ticker),
+                "price": round(price, 2),
+                "changePercent": round(change_percent, 2),
+                "volumeNote": "normal"
+            })
+            print(f"OK {ticker} {price}")
+        except Exception as e:
+            print(f"FAIL {ticker}: {e}")
     return stocks
 
-def push(stocks):
-    h = {'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'}
-    ok = 0
-    for s in stocks:
-        try:
-            res = requests.post(URL+'/rest/v1/dse_stocks', headers=h, json=s, timeout=10)
-            if res.status_code in [200,201]:
-                ok += 1
-            else:
-                print('FAIL '+s['symbol']+' '+res.text[:60])
-        except Exception as e:
-            print('ERR '+str(e))
-    return ok
+def main():
+    stocks = fetch_stock_data()
+    
+    # Create output data
+    output = {
+        "lastUpdated": datetime.now(timezone.utc).isoformat(),
+        "stocks": stocks,
+        "topMover": max(stocks, key=lambda x: abs(x["changePercent"])) if stocks else None,
+        "freshnessBadge": {
+            "status": "current",
+            "hoursSinceUpdate": 0
+        }
+    }
+    
+    # Write to public folder
+    os.makedirs("public", exist_ok=True)
+    with open("public/market-data.json", "w") as f:
+        json.dump(output, f, indent=2)
+    
+    print("✅ market-data.json written successfully")
 
-stocks = fetch()
-if stocks:
-    with open('dse_prices.json','w') as f:
-        json.dump({s['symbol']:str(s['price']) for s in stocks},f,indent=2)
-    print('JSON '+str(len(stocks)))
-    print('Supabase '+str(push(stocks)))
-else:
-    print('No data')
+if __name__ == "__main__":
+    main()
