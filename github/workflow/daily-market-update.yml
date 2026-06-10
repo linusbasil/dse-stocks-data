@@ -12,26 +12,21 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-python@v5
         with:
-          node-version: '20'
+          python-version: '3.11'
 
-      - name: Generate placeholder market data
+      - name: Install dependencies
         run: |
-          mkdir -p public
-          cat > public/market-data.json << 'EOF'
-          {
-            "lastUpdated": "2026-06-10T07:00:00+03:00",
-            "stocks": [],
-            "topMover": null,
-            "freshnessBadge": { "status": "placeholder", "hoursSinceUpdate": 0 }
-          }
-          EOF
+          pip install yfinance beautifulsoup4 requests
+
+      - name: Run DSE fetcher
+        run: python dse_fetcher.py
 
       - name: Commit and push if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add public/market-data.json
-          git diff --staged --quiet || git commit -m "🤖 Placeholder market data"
+          git diff --staged --quiet || git commit -m "🤖 Daily DSE market update $(date +'%Y-%m-%d')"
           git push
