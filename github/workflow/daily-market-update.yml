@@ -1,0 +1,37 @@
+name: Daily DSE Market Update
+
+on:
+  schedule:
+    - cron: '0 4 * * *'   # 7:00 AM EAT
+  workflow_dispatch:
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate placeholder market data
+        run: |
+          mkdir -p public
+          cat > public/market-data.json << 'EOF'
+          {
+            "lastUpdated": "2026-06-10T07:00:00+03:00",
+            "stocks": [],
+            "topMover": null,
+            "freshnessBadge": { "status": "placeholder", "hoursSinceUpdate": 0 }
+          }
+          EOF
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/market-data.json
+          git diff --staged --quiet || git commit -m "🤖 Placeholder market data"
+          git push
