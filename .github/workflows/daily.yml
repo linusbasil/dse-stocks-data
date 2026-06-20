@@ -22,7 +22,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install yfinance
-        run: pip install requests beautifulsoup4
+        run: pip install requests beautifulsoup4 yfinance
 
       - name: Run python dse_fetcher.py
         env:
