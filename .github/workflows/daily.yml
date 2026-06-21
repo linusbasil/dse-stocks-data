@@ -24,13 +24,6 @@ jobs:
       - name: Install yfinance
         run: pip install requests beautifulsoup4 yfinance
 
-      - name: TEST verify admin key
-        run: |
-          curl -fsSL -X POST \
-            -A "Mozilla/5.0 (compatible; BingwaBot/1.0)" \
-            "https://bingwastocks.com/api/public/verify-admin-key" \
-            -H "x-api-key: ${{ secrets.ADMIN_ACCESS_KEY }}"
-
       - name: Run python dse_fetcher.py
         env:
           MANSA_API_KEY: ${{ secrets.MANSA_API_KEY }}
