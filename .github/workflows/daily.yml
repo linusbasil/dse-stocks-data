@@ -26,7 +26,8 @@ jobs:
 
       - name: TEST verify admin key
         run: |
-          curl -fsS -X POST \
+          curl -fsSL -X POST \
+            -A "Mozilla/5.0 (compatible; BingwaBot/1.0)" \
             "https://bingwastocks.com/api/public/verify-admin-key" \
             -H "x-api-key: ${{ secrets.ADMIN_ACCESS_KEY }}"
 
