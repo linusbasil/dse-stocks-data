@@ -29,13 +29,35 @@ jobs:
           MANSA_API_KEY: ${{ secrets.MANSA_API_KEY }}
         run: python dse_fetcher.py
 
+      - name: Build Bingwa payload
+        run: |
+          python3 - <<'EOF'
+          import json
+
+          with open('dse_prices.json') as f:
+              raw = json.load(f)
+
+          prices = {}
+          for name, value in raw.items():
+              symbol = name.replace(' PLC', '').strip()
+              try:
+                  price = float(value)
+              except (TypeError, ValueError):
+                  continue
+              prices[symbol] = price
+
+          with open('dse_payload.json', 'w') as f:
+              json.dump({"prices": prices}, f)
+          EOF
+
       - name: Refresh DSE stocks on Bingwa
         run: |
-          curl -fsS -X POST \
+          curl -fsSL -X POST \
+            -A "Mozilla/5.0 (compatible; BingwaBot/1.0)" \
             "https://bingwastocks.com/api/public/refresh-dse-stocks" \
             -H "x-api-key: ${{ secrets.ADMIN_ACCESS_KEY }}" \
             -H "Content-Type: application/json" \
-            --data @dse_prices.json
+            --data @dse_payload.json
 
       - name: Commit and push prices
         run: |
