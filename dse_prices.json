@@ -1,20 +1,14 @@
-u{
+{
   "CRDB PLC": "2540.0",
   "DCB PLC": "510.0",
   "DSE PLC": "6420.0",
-  "EABL PLC": "4910.0",
-  "JATU PLC": "265.0",
-  "JHL PLC": "8650.0",
-  "KA PLC": "115.0",
   "KCB PLC": "1850.0",
   "MBP PLC": "2050.0",
   "MCB PLC": "990.0",
   "MKCB PLC": "4430.0",
   "NICO PLC": "3600.0",
   "NMB PLC": "16100.0",
-  "NMG PLC": "270.0",
   "PAL PLC": "360.0",
-  "SWALA PLC": "450.0",
   "SWIS PLC": "2710.0",
   "TBL PLC": "9780.0",
   "TCC PLC": "12500.0",
@@ -22,7 +16,8 @@ u{
   "TOL PLC": "1490.0",
   "TPCC PLC": "6660.0",
   "TTP PLC": "500.0",
-  "USL PLC": "25.0",
+  "VERTEX ETF PLC":"340.0",
+  "AFRIPRISE PLC": "650.0",
+  "IEACLC-ETF PLC": "1250.0",
   "VODA PLC": "750.0",
-  "YETU PLC": "510.0"
 }
