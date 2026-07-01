@@ -1,7 +1,7 @@
 {
-  "CRDB PLC": "2700.0",
-  "DCB PLC": "510.0",
-  "DSE PLC": "6370.0",
+  "CRDB PLC": "2710.0",
+  "DCB PLC": "505.0",
+  "DSE PLC": "6310.0",
   "KCB PLC": "1920.0",
   "MBP PLC": "1900.0",
   "MCB PLC": "880.0",
@@ -13,10 +13,10 @@
   "TBL PLC": "9680.0",
   "TCC PLC": "12500.0",
   "TCCL PLC": "3290.0",
-  "TOL PLC": "1440.0",
+  "TOL PLC": "1450.0",
   "TPCC PLC": "6480.0",
   "TTP PLC": "480.0",
-  "VERTEX ETF PLC":"335.0",
+  "VERTEX ETF PLC":"340.0",
   "AFRIPRISE PLC": "650.0",
   "IEACLC-ETF PLC": "1270.0",
   "VODA PLC": "775.0"
